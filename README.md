@@ -41,7 +41,7 @@ Todos os produtos e comentários estarão disponíveis na api disponibilizada. C
 
 * Ver na solução a utilização de Vue.js
 * Um código escrito da maneira mais semântica possível
-* CSS3/4 - Com um pre processador de CSS
+* CSS3 - Com um pre processador de CSS
 * Layout responsivo
 
 ### O que nós ficaríamos felizes de ver em seu teste <h3>
