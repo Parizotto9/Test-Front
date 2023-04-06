@@ -1,7 +1,8 @@
 @import './base.css';
 
-#app {
+.container {
   max-width: 1280px;
   margin: 0 auto;
-  background: red;
+}
+#app {
 }
