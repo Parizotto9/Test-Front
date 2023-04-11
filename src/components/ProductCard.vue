@@ -5,7 +5,7 @@ export default defineComponent({
   name: 'ProductCard',
   props: {
     product: {
-      type: Array,
+      type: Object,
       required: true
     }
   }
@@ -13,14 +13,14 @@ export default defineComponent({
 </script>
 
 <template>
-  <v-card class="elevation-2 ma-3 pa-5 d-flex flex-column relative" width="240" height="370">
+  <v-card class="elevation-2 ma-1 ma-sm-2 ma-md-3 pa-5 d-flex flex-column relative" >
     <img :src="product.thumbnail" :alt="product.title" class="card-image" />
     <v-chip v-if="product.discount > 0" class="ma-2 discount" color="white"  size="x-small">
       <v-icon start icon="mdi-arrow-down"></v-icon>
       {{ product.discount }} %
     </v-chip>
     <div>
-      <p class="text-subtitle-2 title">{{ product.title }} isso é um teste boy namoral</p>
+      <p class="text-subtitle-2 title">{{ product.title }} </p>
       <v-rating density="compact" size="small" :model-value="product.evaluation" readonly color="yellow-darken-3" class="my-2"></v-rating>
       <p class="text-decoration-line-through text-caption">R${{product.price}}</p>
       <p class="font-weight-bold  text-h6">R${{(product.price*(100-product.discount)/100).toFixed(2)}}</p>
@@ -29,6 +29,15 @@ export default defineComponent({
 </template>
 
 <style lang="scss" scoped>
+.v-card{
+  width: 240px;
+  height: 370px;
+}
+@media screen and (max-width: 600px) {
+  .v-card{
+    width: 180px;
+  }
+}
 .card-image{
     width: 100%;
     height: 180px;

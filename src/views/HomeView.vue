@@ -13,7 +13,7 @@ export default {
   components: { ProductCard },
   setup() {
     const state = reactive({
-      loading: true, // Adicionado para definir loading como true inicialmente
+      loading: true, 
       categorys: [
         {
           name: "Smartphones",
@@ -41,7 +41,7 @@ export default {
           to: "/search?category=HOME"
         },
       ],
-      products: [], // Movido para o objeto state
+      products: [], 
     });
 
     const router = useRouter();
@@ -51,13 +51,14 @@ export default {
     };
 
     const getProducts = async () => {
-      try {
-        const res = await axios.get("https://testfront.zlinkt.com/?index=0&length=4&startDiscount=40");
+      await axios.get("https://testfront.zlinkt.com/?index=0&length=6&startDiscount=40")
+      .then((res) => {
         state.products = res.data.products;
         state.loading = false;
-      } catch (err) {
+      })
+      .catch((err) => {
         console.log(err);
-      }
+      })
     };
 
     onMounted(getProducts);
@@ -86,7 +87,7 @@ export default {
     
     <div class="centralizar">
       <v-slide-group show-arrows>
-        <v-slide-group-item v-for="card, ind in state.products" :key="ind" class="">
+        <v-slide-group-item v-for="card, ind in state.products" :key="ind">
           <ProductCard  :product="card"/>
         </v-slide-group-item>
       </v-slide-group>
