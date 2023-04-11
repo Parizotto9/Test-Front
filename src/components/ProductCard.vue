@@ -22,8 +22,8 @@ export default defineComponent({
     <div>
       <p class="text-subtitle-2 title">{{ product.title }} </p>
       <v-rating density="compact" size="small" :model-value="product.evaluation" readonly color="yellow-darken-3" class="my-2"></v-rating>
-      <p class="text-decoration-line-through text-caption">R${{product.price}}</p>
-      <p class="font-weight-bold  text-h6">R${{(product.price*(100-product.discount)/100).toFixed(2)}}</p>
+      <p v-if="product.discount > 0" class="text-decoration-line-through text-caption">R${{product.price}}</p>
+      <p class="font-weight-bold  text-h6" :class="product.discount > 0 ? '' : 'mt-4' ">R${{(product.price*(100-product.discount)/100).toFixed(2)}}</p>
     </div>
   </v-card>
 </template>
