@@ -13,7 +13,7 @@ export default defineComponent({
 </script>
 
 <template>
-  <v-card class="elevation-2 ma-1 ma-sm-2 ma-md-3 pa-5 d-flex flex-column relative" >
+  <v-card class="elevation-2 ma-1 ma-sm-2 ma-md-2 pa-5 d-flex flex-column relative" >
     <img :src="product.thumbnail" :alt="product.title" class="card-image" />
     <v-chip v-if="product.discount > 0" class="ma-2 discount" color="white"  size="x-small">
       <v-icon start icon="mdi-arrow-down"></v-icon>

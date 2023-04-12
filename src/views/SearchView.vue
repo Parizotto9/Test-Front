@@ -1,5 +1,5 @@
 <script>
-import { reactive, onMounted, computed } from 'vue'
+import { reactive, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 import ProductCard from '../components/ProductCard.vue'
@@ -11,9 +11,8 @@ export default {
     const state = reactive({
       loading: true,
       products: [],
+      filteredProducts: [],
       dialog: false
-      // filters: {
-      // }
     })
     const filters = reactive({
       price: [
@@ -51,15 +50,15 @@ export default {
           apply: false,
           text: 'A partir de R$ 3000,00',
           startingPrice: 3000,
-          endingPrice: null
+          endingPrice: Number.POSITIVE_INFINITY
         }
       ],
       rating: [
-        { apply: false },
-        { apply: false },
-        { apply: false },
-        { apply: false },
-        { apply: false }
+        { apply: false, value: 1 },
+        { apply: false, value: 2 },
+        { apply: false, value: 3 },
+        { apply: false, value: 4 },
+        { apply: false, value: 5 }
       ],
       discount: [
         {
@@ -83,16 +82,19 @@ export default {
         {
           apply: false,
           text: 'Até 10%',
-          startingDiscount: null,
+          startingDiscount: 0.0001,
           endingDiscount: 10
         }
       ]
     })
 
+    watch(filters, () => {
+      filter()
+    })
+
     const route = useRoute()
 
     const getProducts = async () => {
-      console.log(query.value.category)
       await axios
         .get('https://testfront.zlinkt.com/?index=0&length=4&startDiscount=40')
         .then((res) => {
@@ -102,8 +104,59 @@ export default {
         .catch((err) => {
           console.log(err)
         })
+        filter()
     }
 
+    const filter = () => {
+      let selectedPrices = filters.price.filter((item) => {
+        return item.apply
+      })
+
+      let selectedRatings = filters.rating.filter((item) => {
+        return item.apply
+      })
+
+      let selectedDiscounts = filters.discount.filter((item) => {
+        return item.apply
+      })
+
+      state.filteredProducts = state.products.filter((item) => {
+        const finalPrice = item.price*(100-item.discount)/100
+        return filterPrice(selectedPrices, finalPrice)
+      }).filter((item) => {
+        return filterRating(selectedRatings, item)
+      }).filter((item) => {
+        return filterDiscount(selectedDiscounts, item)
+      })
+    }
+
+    const filterPrice = (selectedFilters, price) => {
+      if (selectedFilters.length === 0) {
+        return true
+      }
+      return selectedFilters.some((fil) => {
+        return fil.startingPrice <= price && fil.endingPrice >= price
+      })
+    }
+
+    const filterRating = (selectedRatings, item) => {
+      if (selectedRatings.length === 0) {
+        return true
+      } 
+      return selectedRatings.some((fil) => {
+        const value = fil.value - item.evaluation
+        return  value <= 0 && value > -1 
+      })
+    }
+
+    const filterDiscount = (selectedDiscounts, item) => {
+      if (selectedDiscounts.length === 0) {
+        return true
+      } 
+      return selectedDiscounts.some((fil) => {
+        return fil.startingDiscount <= item.discount && fil.endingDiscount >= item.discount
+      })
+    }
 
     const query = computed(() => {
       return route.query
@@ -119,6 +172,7 @@ export default {
           .catch((err) => {
             console.log(err)
           })
+          filter()
         return
       }
       getProducts()
@@ -130,6 +184,7 @@ export default {
       filters,
       getProducts,
       getByCategoryOrSearch,
+      filter
     }
   }
 }
@@ -137,7 +192,7 @@ export default {
 
 <template>
   <main>
-    <div class="page ma-1 ma-md-5">
+    <div class="page ma-1 ma-md-4">
       <div class="filters">
         <h3>Preço</h3>
         <div>
@@ -159,7 +214,7 @@ export default {
             hide-details
           >
             <template v-slot:label>
-              <v-rating size="small" :model-value="ind + 1" readonly></v-rating>
+              <v-rating size="small" :model-value="filter.value" readonly></v-rating>
             </template>
           </v-checkbox>
         </div>
@@ -215,7 +270,7 @@ export default {
                   hide-details
                 >
                   <template v-slot:label>
-                    <v-rating size="small" :model-value="ind + 1" readonly></v-rating>
+                    <v-rating size="small" :model-value="filter.value" readonly></v-rating>
                   </template>
                 </v-checkbox>
               </div>
@@ -233,7 +288,7 @@ export default {
           </v-dialog>
         </div>
         <div class="d-flex flex-wrap justify-center justify-md-start">
-          <ProductCard v-for="(card, ind) in state.products" :key="ind" :product="card" />
+          <ProductCard v-for="(card, ind) in state.filteredProducts" :key="ind" :product="card" />
         </div>
       </div>
     </div>
@@ -262,7 +317,7 @@ export default {
   display: none;
 }
 .cards {
-  max-width: 380px;
+  width: 380px;
 }
 @media screen and (min-width: 1020px) {
   .filters {
@@ -272,19 +327,19 @@ export default {
     display: none;
   }
 }
-@media screen and (min-width: 780px) and (max-width: 1320px) {
+@media screen and (min-width: 800px) and (max-width: 1320px) {
   .cards {
-    max-width: 850px;
+    width: 800px;
   }
 }
-@media screen and (min-width: 600px) and (max-width: 780px) {
+@media screen and (min-width: 600px) and (max-width: 800px) {
   .cards {
-    max-width: 550px;
+    width: 550px;
   }
 }
 @media screen and (min-width: 1320px) {
   .cards {
-    max-width: 1100px;
+    width: 1100px;
   }
 }
 </style>
