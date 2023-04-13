@@ -1,190 +1,139 @@
 <script>
 import { reactive, watch, onMounted, computed } from 'vue'
-import axios from 'axios'
 import { useRoute } from 'vue-router'
 import ProductCard from '../components/ProductCard.vue'
-//Colocar um onmounted
+import { useApiStore } from "../stores/store";
+
 
 export default {
   components: { ProductCard },
   setup() {
+    
+    const store = useApiStore();
     const state = reactive({
       loading: true,
       products: [],
       filteredProducts: [],
-      dialog: false
+      dialog: false,
+
+
     })
     const filters = reactive({
+      selectedPrice: {
+        text: 'Sem filtro de Preço'
+      },
+      selectedRatings: { value: null, label: 'Sem filtro de Avaliações' },
+      selectedDiscount: {
+        text: 'Sem filtro de Descontos'
+      },
+      order: { text: 'Sem Ordem', value: '', orderDir: '' },
       price: [
         {
-          apply: false,
+          text: 'Sem filtro de Preço'
+        },
+        {
           text: 'Até R$ 100,00',
           startingPrice: 0,
           endingPrice: 100
         },
         {
-          apply: false,
           text: 'R$ 100,00 a R$ 500,00',
           startingPrice: 100,
           endingPrice: 500
         },
         {
-          apply: false,
           text: 'R$ 500,00 a R$ 1000,00',
           startingPrice: 500,
           endingPrice: 1000
         },
         {
-          apply: false,
           text: 'R$ 1000,00 a R$ 2000,00',
           startingPrice: 1000,
           endingPrice: 2000
         },
         {
-          apply: false,
           text: 'R$ 2000,00 a R$ 3000,00',
           startingPrice: 2000,
           endingPrice: 3000
         },
         {
-          apply: false,
           text: 'A partir de R$ 3000,00',
           startingPrice: 3000,
-          endingPrice: Number.POSITIVE_INFINITY
+          endingPrice: 2000000
         }
       ],
       rating: [
-        { apply: false, value: 1 },
-        { apply: false, value: 2 },
-        { apply: false, value: 3 },
-        { apply: false, value: 4 },
-        { apply: false, value: 5 }
+        { value: null, label: 'Sem filtro de Avaliações' },
+        { value: 1 },
+        { value: 2 },
+        { value: 3 },
+        { value: 4 },
+        { value: 5 }
       ],
       discount: [
         {
-          apply: false,
+          text: 'Sem filtro de Descontos'
+        },
+        {
           text: 'De 60% até 80%',
           startingDiscount: 60,
           endingDiscount: 80
         },
         {
-          apply: false,
           text: 'De 30% até 60%',
           startingDiscount: 30,
           endingDiscount: 60
         },
         {
-          apply: false,
           text: 'De 10% até 30%',
           startingDiscount: 10,
           endingDiscount: 30
         },
         {
-          apply: false,
           text: 'Até 10%',
           startingDiscount: 0.0001,
           endingDiscount: 10
         }
+      ],
+      orderItems: [
+        { text: 'Sem Ordem', value: '', orderDir: '' },
+        { text: 'Menores Preços', value: 'price', orderDir: 'asc' },
+        { text: 'Maiores Preços', value: 'price', orderDir: 'desc' },
+        { text: 'Melhores Avaliados', value: 'evaluation', orderDir: 'desc' }
       ]
     })
 
+    watch(state.order, () => {
+      getProducts()
+    })
     watch(filters, () => {
-      filter()
+      getProducts()
     })
 
     const route = useRoute()
-
     const getProducts = async () => {
-      await axios
-        .get('https://testfront.zlinkt.com/?index=0&length=4&startDiscount=40')
-        .then((res) => {
-          state.products = res.data.products
-          state.loading = false
-        })
-        .catch((err) => {
-          console.log(err)
-        })
-        filter()
+      console.log('opa')
+      const pag = 1
+      const params = [
+        pag,
+        24,
+        filters.selectedPrice, 
+        filters.selectedRatings, 
+        filters.selectedDiscount,
+        filters.order,
+        query.value.category
+      ]
+      state.filteredProducts = await store.getProducts(params)
     }
-
-    const filter = () => {
-      let selectedPrices = filters.price.filter((item) => {
-        return item.apply
-      })
-
-      let selectedRatings = filters.rating.filter((item) => {
-        return item.apply
-      })
-
-      let selectedDiscounts = filters.discount.filter((item) => {
-        return item.apply
-      })
-
-      state.filteredProducts = state.products.filter((item) => {
-        const finalPrice = item.price*(100-item.discount)/100
-        return filterPrice(selectedPrices, finalPrice)
-      }).filter((item) => {
-        return filterRating(selectedRatings, item)
-      }).filter((item) => {
-        return filterDiscount(selectedDiscounts, item)
-      })
-    }
-
-    const filterPrice = (selectedFilters, price) => {
-      if (selectedFilters.length === 0) {
-        return true
-      }
-      return selectedFilters.some((fil) => {
-        return fil.startingPrice <= price && fil.endingPrice >= price
-      })
-    }
-
-    const filterRating = (selectedRatings, item) => {
-      if (selectedRatings.length === 0) {
-        return true
-      } 
-      return selectedRatings.some((fil) => {
-        const value = fil.value - item.evaluation
-        return  value <= 0 && value > -1 
-      })
-    }
-
-    const filterDiscount = (selectedDiscounts, item) => {
-      if (selectedDiscounts.length === 0) {
-        return true
-      } 
-      return selectedDiscounts.some((fil) => {
-        return fil.startingDiscount <= item.discount && fil.endingDiscount >= item.discount
-      })
-    }
-
     const query = computed(() => {
       return route.query
     })
-    const getByCategoryOrSearch = async () => {
-      if (query.value.category) {
-        await axios
-          .get(`https://testfront.zlinkt.com/?category=${query.value.category}`)
-          .then((res) => {
-            state.products = res.data.products
-            state.loading = false
-          })
-          .catch((err) => {
-            console.log(err)
-          })
-          filter()
-        return
-      }
-      getProducts()
-    }
 
-    onMounted(getByCategoryOrSearch)
+    onMounted(getProducts)
     return {
       state,
       filters,
       getProducts,
-      getByCategoryOrSearch,
-      filter
     }
   }
 }
@@ -196,53 +145,69 @@ export default {
       <div class="filters">
         <h3>Preço</h3>
         <div>
-          <v-checkbox
-            v-for="(filter, ind) in filters.price"
-            :key="ind"
-            v-model="filter.apply"
-            hide-details
-            :label="filter.text"
-          ></v-checkbox>
+          <v-radio-group v-model="filters.selectedPrice">
+            <v-radio
+              v-for="radio in filters.price"
+              :key="radio"
+              :label="radio.text"
+              :value="radio"
+            ></v-radio>
+          </v-radio-group>
         </div>
         <v-divider></v-divider>
-        <h3>Avaliação</h3>
+        <h3 class="mt-4">Avaliação</h3>
         <div>
-          <v-checkbox
-            v-for="(filter, ind) in filters.rating"
-            v-model="filter.apply"
-            :key="ind"
-            hide-details
-          >
-            <template v-slot:label>
-              <v-rating size="small" :model-value="filter.value" readonly></v-rating>
-            </template>
-          </v-checkbox>
+          <v-radio-group v-model="filters.selectedRatings">
+            <v-radio
+              v-for="(rating, ind) in filters.rating"
+              :key="ind"
+              :value="rating"
+              :label="rating.label"
+            >
+              <template v-slot:label v-if="ind != 0">
+                <v-rating size="small" :model-value="rating.value" readonly></v-rating>
+              </template>
+            </v-radio>
+          </v-radio-group>
         </div>
-        <h3>Desconto</h3>
+        <h3 class="mt-4">Desconto</h3>
         <div>
-          <v-checkbox
-            v-model="filter.apply"
-            v-for="(filter, ind) in filters.discount"
-            :key="ind"
-            hide-details
-            :label="filter.text"
-          ></v-checkbox>
+          <v-radio-group v-model="filters.selectedDiscount">
+            <v-radio
+              v-for="discount in filters.discount"
+              :key="discount"
+              :label="discount.text"
+              :value="discount"
+            ></v-radio>
+          </v-radio-group>
         </div>
       </div>
       <div class="cards d-flex flex-column align-center align-md-start">
         <div class="order ma-3">
           <v-select
             label="Ordenar"
-            :items="['Sem Ordem', 'Menores Preços', 'Maiores Preços', 'Mais avaliados']"
+            v-model="filters.order"
+            :items="filters.orderItems"
+            item-title="text"
+            item-value="value"
             variant="underlined"
+            return-object
             hide-details
             prepend-inner-icon="mdi-swap-vertical"
           ></v-select>
-          <v-btn prepend-icon="mdi-filter-variant" variant="text" color="black" class="dialog text-none" @click="state.dialog = !state.dialog"> Filtros </v-btn>
+          <v-btn
+            prepend-icon="mdi-filter-variant"
+            variant="text"
+            color="black"
+            class="dialog text-none"
+            @click="state.dialog = !state.dialog"
+          >
+            Filtros
+          </v-btn>
           <v-dialog v-model="state.dialog" width="auto">
             <v-card class="pa-10 relative">
               <v-btn
-              icon
+                icon
                 @click="state.dialog = !state.dialog"
                 variant="text"
                 class="btn-close"
@@ -252,37 +217,41 @@ export default {
               </v-btn>
               <h3>Preço</h3>
               <div>
-                <v-checkbox
-                  v-for="(filter, ind) in filters.price"
-                  :key="ind"
-                  v-model="filter.apply"
-                  hide-details
-                  :label="filter.text"
-                ></v-checkbox>
+                <v-radio-group v-model="filters.selectedPrice">
+                  <v-radio
+                    v-for="radio in filters.price"
+                    :key="radio"
+                    :label="radio.text"
+                    :value="radio"
+                  ></v-radio>
+                </v-radio-group>
               </div>
               <v-divider></v-divider>
-              <h3>Avaliação</h3>
+              <h3 class="mt-4">Avaliação</h3>
               <div>
-                <v-checkbox
-                  v-model="filter.apply"
-                  v-for="(filter, ind) in filters.rating"
-                  :key="ind"
-                  hide-details
-                >
-                  <template v-slot:label>
-                    <v-rating size="small" :model-value="filter.value" readonly></v-rating>
-                  </template>
-                </v-checkbox>
+                <v-radio-group v-model="filters.selectedRatings">
+                  <v-radio
+                    v-for="(rating, ind) in filters.rating"
+                    :key="ind"
+                    :value="rating"
+                    :label="rating.label"
+                  >
+                    <template v-slot:label v-if="ind != 0">
+                      <v-rating size="small" :model-value="rating.value" readonly></v-rating>
+                    </template>
+                  </v-radio>
+                </v-radio-group>
               </div>
-              <h3>Desconto</h3>
+              <h3 class="mt-4">Desconto</h3>
               <div>
-                <v-checkbox
-                  v-model="filter.apply"
-                  v-for="(filter, ind) in filters.discount"
-                  :key="ind"
-                  hide-details
-                  :label="filter.text"
-                ></v-checkbox>
+                <v-radio-group v-model="filters.selectedDiscount">
+                  <v-radio
+                    v-for="discount in filters.discount"
+                    :key="discount"
+                    :label="discount.text"
+                    :value="discount"
+                  ></v-radio>
+                </v-radio-group>
               </div>
             </v-card>
           </v-dialog>
@@ -323,7 +292,7 @@ export default {
   .filters {
     display: block;
   }
-  .dialog{
+  .dialog {
     display: none;
   }
 }
