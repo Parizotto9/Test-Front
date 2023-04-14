@@ -14,10 +14,8 @@ import * as directives from 'vuetify/directives'
 
 const vuetify = createVuetify({
   components,
-  directives,
-
+  directives
 })
-
 
 const app = createApp(App)
 

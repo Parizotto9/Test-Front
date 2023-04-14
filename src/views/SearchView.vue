@@ -1,12 +1,13 @@
 <script>
-import { reactive, watch, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { reactive, watch, onMounted } from 'vue'
+import { useRoute, onBeforeRouteUpdate } from 'vue-router'
 import ProductCard from '../components/ProductCard.vue'
 import { useApiStore } from '../stores/store'
 
 export default {
   components: { ProductCard },
   setup() {
+    const route = useRoute()
     const store = useApiStore()
     const state = reactive({
       loading: true,
@@ -15,6 +16,7 @@ export default {
     })
     const filters = reactive({
       selectedPage: 1,
+      query: {},
       selectedPrice: {
         text: 'Sem filtro de Preço'
       },
@@ -105,11 +107,11 @@ export default {
     watch(filters, () => {
       getProducts()
     })
-    watch(filters, () => {
-      getProducts()
-    })
 
-    const route = useRoute()
+    onBeforeRouteUpdate((to, from, next) => {
+      filters.query = to.query
+      next()
+    })
 
     const getProducts = async () => {
       const params = [
@@ -119,17 +121,18 @@ export default {
         filters.selectedRatings,
         filters.selectedDiscount,
         filters.order,
-        query.value.category
+        filters.query.category,
+        filters.query.search
       ]
       const data = await store.getProducts(params)
       state.filteredProducts = data.products
       state.pages = Math.floor(data.count / 24)
     }
+    const getQuery = () => {
+      filters.query = route.query
+    }
 
-    const query = computed(() => {
-      return route.query
-    })
-
+    onMounted(getQuery)
     onMounted(getProducts)
 
     return {
@@ -185,6 +188,11 @@ export default {
         </div>
       </div>
       <div class="cards d-flex flex-column align-center align-md-start">
+        <div class="w-100 mt-2 text-start">
+          <p class="link ml-5 text-grey-darken-2 align-start">
+            <router-link to="/">Home </router-link>
+          </p>
+        </div>
         <div class="order ma-3">
           <v-select
             label="Ordenar"
@@ -206,8 +214,8 @@ export default {
           >
             Filtros
           </v-btn>
-          <v-dialog v-model="state.dialog" width="auto">
-            <v-card class="pa-10 relative">
+          <v-dialog v-model="state.dialog" width="300">
+            <v-card class="pa-6 relative">
               <v-btn
                 icon
                 @click="state.dialog = !state.dialog"
@@ -259,7 +267,12 @@ export default {
           </v-dialog>
         </div>
         <div class="d-flex flex-wrap justify-center justify-md-start">
-          <ProductCard v-for="(card, ind) in state.filteredProducts" :key="ind" :product="card" :carrousel="false" />
+          <ProductCard
+            v-for="(card, ind) in state.filteredProducts"
+            :key="ind"
+            :product="card"
+            :carrousel="false"
+          />
         </div>
         <div class="d-flex justify-center w-100" fluid>
           <v-pagination
@@ -267,7 +280,7 @@ export default {
             :length="state.pages"
             rounded="circle"
             class="mt-5"
-            :size=" $vuetify.display.smAndDown ? 'small' : 'default'"
+            :size="$vuetify.display.smAndDown ? 'small' : 'default'"
             :total-visible="4"
           ></v-pagination>
         </div>
@@ -277,10 +290,15 @@ export default {
 </template>
 
 <style scoped lang="scss">
+.link {
+  text-align: start;
+  align-self: left;
+}
 .btn-close {
   position: absolute;
   top: 10px;
   right: 10px;
+  z-index: 10;
 }
 .page {
   display: flex;
@@ -304,6 +322,7 @@ export default {
   .filters {
     display: block;
   }
+
   .dialog {
     display: none;
   }

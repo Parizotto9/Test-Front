@@ -1,7 +1,6 @@
 <script>
-// import ProductCard from '../components/ProductCard.vue';
-import { onMounted, reactive, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { onBeforeMount, reactive, computed } from 'vue'
+import { useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { useApiStore } from '../stores/store'
 import ProductCard from '../components/ProductCard.vue'
 
@@ -11,7 +10,8 @@ export default {
     const store = useApiStore()
     const state = reactive({
       item: {},
-      imgSelected: null,
+      indexImg: 0,
+      itemId: null,
       products: [],
       productsDiscount: []
     })
@@ -19,17 +19,28 @@ export default {
     const route = useRoute()
 
     const getItem = async () => {
-      const data = await store.getItem(query.value.item)
+      const data = await store.getItem(state.itemId)
       state.item = data
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth' 
+      })
       getProducts()
       getProductsDiscount()
     }
 
     const getProducts = async () => {
-      const params = [1, 15, '', '', '', '', state.item.category]
+      const params = [1, 15, '', '', '', '', state.item.category, '']
       const data = await store.getProducts(params)
       state.products = data.products
     }
+    
+
+    onBeforeRouteUpdate((to, from, next) => {
+      state.itemId = to.query.item
+      getItem()
+      next()
+    })
 
     const getProductsDiscount = async () => {
       const params = [
@@ -43,22 +54,26 @@ export default {
           endingDiscount: 80
         },
         '',
-        ''
+        '',
       ]
       const data = await store.getProducts(params)
       state.productsDiscount = data.products
     }
 
-    const query = computed(() => {
-      return route.query
-    })
+    const getId = () => {
+      state.itemId = route.query.item
+    }
+
+
     const finalPrice = computed(() => {
       return ((state.item.price * (100 - state.item.discount)) / 100).toLocaleString('pt-br', {
         style: 'currency',
         currency: 'BRL'
       })
     })
-    onMounted(getItem)
+
+    onBeforeMount(getId)
+    onBeforeMount(getItem)
 
     return {
       state,
@@ -69,14 +84,26 @@ export default {
 </script>
 
 <template>
-  <div class="d-flex flex-column justify-center align-center">
-    <div class="d-flex justify-center ma-10">
-      <v-card elevation="0" class="d-flex pa-5 ma-1 rounded-lg text-grey-darken-2 cards">
-        <div class="d-flex flex-column align-center card-img">
-          <img :src="state.item.thumbnail" :alt="state.item.title" class="img-full my-8" />
-
+  <div class="d-flex flex-column justify-center align-center mb-16 pb-16 mb-0 pb-0">
+    <div class="centralizar mt-4">
+      <p class="text-grey-darken-2 links">
+        <router-link to="/">Home 
+      </router-link>
+      <span class="mx-5"> ></span>
+      <router-link :to="`/search?category=${state.item.category}`">
+       {{state.item.category.toLowerCase()}}
+      </router-link>  
+    </p>
+  </div>
+    <div class="d-flex justify-center flex-column flex-md-row ma-md-10 my-md-4 ma-0">
+      <v-card
+        elevation="0"
+        class="d-flex flex-column align-center align-md-start flex-md-row ma-0 ma-md-1 rounded-lg text-grey-darken-2 cards"
+      >
+        <div class="d-flex flex-column justify-center align-center card-img">
+          <img v-if="state.item.pictures" :src="state.item.pictures[state.indexImg]" :alt="state.item.title" class="img-full my-8" />
           <v-slide-group
-            v-model="state.imgSelected"
+            v-model="state.indexImg"
             show-arrows
             selected-class="img-selected"
             mandatory
@@ -96,7 +123,7 @@ export default {
             </v-slide-group-item>
           </v-slide-group>
         </div>
-        <div class="card-info pa-5">
+        <div class="card-info">
           <h2 class="text-h6 font-weight-bold text-grey-darken-1">
             {{ state.item.title }}
           </h2>
@@ -115,14 +142,20 @@ export default {
             </router-link>
           </p>
           <p class="description text-subtitle-2">{{ state.item.info }}</p>
+          <v-divider class="my-3"></v-divider>
           <router-link to="/">
-            <p class="mt-5 text-grey-darken-2">Mais informações</p>
+            <p class="mt-5 text-grey-darken-2">
+              {{ $vuetify.display.mdAndUp ? 'Mais informações' : 'Informações do produto' }}
+            </p>
           </router-link>
-          <v-divider class="my-8"></v-divider>
+          <v-divider class="my-5"></v-divider>
         </div>
       </v-card>
 
-      <v-card elevation="0" class="rounded-lg ma-1 card-price text-grey-darken-2 cards">
+      <v-card
+        elevation="0"
+        class="rounded-lg ma-0 ma-md-1 my-3 card-price text-grey-darken-2 cards"
+      >
         <p v-if="state.item.discount > 0" class="my-n5">
           <span class="text-decoration-line-through text-caption">
             {{ state.item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }) }}
@@ -149,15 +182,28 @@ export default {
           ></v-text-field>
           <v-btn class="ml-4" color="blue-lighten-1">Ok</v-btn>
         </div>
-        <v-divider class="my-8"></v-divider>
-        <v-btn prepend-icon="mdi-cart-outline" color="green-lighten-1" block> Comprar</v-btn>
-        <p class="text-caption mt-5">
+        <v-divider v-if="$vuetify.display.mdAndUp" class="my-8"></v-divider>
+        <v-btn
+          v-if="$vuetify.display.mdAndUp"
+          prepend-icon="mdi-cart-outline"
+          color="green-lighten-1"
+          block
+        >
+          Comprar</v-btn
+        >
+        <p class="text-caption mt-5" v-if="$vuetify.display.mdAndUp">
           Este produto é vendido por
           <a href="" class="text-grey-darken-2">{{ state.item.store }}</a> e entregue por
           <strong>Loja</strong>, que garante a sua compra, do pedido à entrega.
         </p>
       </v-card>
     </div>
+    <v-card class="cards d-md-none fixed-card pa-4">
+      <h3 class="font-weight-bold text-h5">{{ finalPrice }}</h3>
+      <p class="mb-1 text-caption">no <strong>cartão de crédito</strong></p>
+      <v-btn prepend-icon="mdi-cart-outline" color="green-lighten-1" block> Comprar</v-btn>
+    </v-card>
+
     <div class="centralizar mt-13">
       <h2 class="text-grey-darken-2 font-weight-bold mb-4">Produtos similares</h2>
       <v-slide-group show-arrows>
@@ -166,6 +212,7 @@ export default {
         </v-slide-group-item>
       </v-slide-group>
     </div>
+
     <div class="centralizar mt-13">
       <h2 class="text-grey-darken-2 font-weight-bold mb-4">Aproveite as ofertas</h2>
       <v-slide-group show-arrows>
@@ -174,11 +221,19 @@ export default {
         </v-slide-group-item>
       </v-slide-group>
     </div>
-    <!-- <ProductCard :product="state.item" :carrousel="true" /> -->
+    <div class="centralizar mt-13">
+      <h2 class="text-grey-darken-2 font-weight-bold mb-4">Informações do produto</h2>
+      <v-card elevation="0" class="rounded-lg ma-1 text-grey-darken-2 pa-8 mx-7 mx-md-0">
+        {{ state.item.description }}
+      </v-card>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
+.links{
+  width: 100vw;
+}
 .big-price {
   font-size: 30px;
 }
@@ -188,7 +243,6 @@ export default {
 .centralizar {
   display: flex;
   flex-direction: column;
-  // align-items: center;
   max-width: 1120px;
 }
 .v-text-field {
@@ -196,10 +250,9 @@ export default {
   border-radius: 5px;
   overflow: hidden;
 }
-/* .v-field__field, .v-input, .v-field__loader, .v-field__outline{
-} */
 .card-price {
   width: 300px;
+  padding: 30px;
 }
 .discount {
   background: rgb(86, 226, 86);
@@ -210,7 +263,7 @@ export default {
   text-decoration: none !important;
 }
 .cards {
-  padding: 30px;
+  padding: 20px;
   border: none !important;
   height: 525px;
 }
@@ -228,6 +281,7 @@ export default {
 }
 .card-info {
   max-width: 390px;
+  padding: 20px;
   h2 {
     line-height: 26px;
   }
@@ -245,5 +299,63 @@ export default {
   border: solid 1px lightgray;
   width: 60px;
   aspect-ratio: 1/1;
+}
+@media screen and (max-width: 960px) {
+  .cards {
+    width: 100vw !important;
+    height: auto;
+  }
+  .card-img {
+    width: 80vw;
+    margin-bottom: 20px;
+  }
+  .card-info {
+    max-width: 100vw;
+    padding: 10px;
+  }
+  .description {
+    display: none;
+  }
+  .img-full {
+    width: 335px;
+  }
+  .fixed-card {
+    position: fixed;
+    bottom: 0;
+    z-index: 10;
+  }
+  .centralizar {
+    max-width: 100vw;
+    h2{
+      margin-left: 30px;
+    }
+  }
+}
+@media screen and (min-width: 960px) and (max-width: 1200px) {
+  .card-img {
+    width: 280px;
+  }
+  .centralizar {
+    max-width: calc(100vw - 60px);
+    margin: 0 30px;
+  }
+
+  .img-full {
+    width: 250px;
+  }
+  .img-carrousel {
+    width: 50px;
+  }
+  .card-info {
+    max-width: 280px;
+    padding: 10px;
+  }
+  .cards {
+    height: 475px;
+    padding: 10px;
+  }
+  .card-price {
+    padding: 20px;
+  }
 }
 </style>
