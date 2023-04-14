@@ -88,7 +88,7 @@ export default {
     <div class="centralizar">
       <v-slide-group show-arrows>
         <v-slide-group-item v-for="card, ind in state.products" :key="ind">
-          <ProductCard  :product="card"/>
+          <ProductCard  :product="card" :carrousel="true"/>
         </v-slide-group-item>
       </v-slide-group>
     </div>

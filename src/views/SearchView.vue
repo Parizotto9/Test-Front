@@ -2,23 +2,19 @@
 import { reactive, watch, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import ProductCard from '../components/ProductCard.vue'
-import { useApiStore } from "../stores/store";
-
+import { useApiStore } from '../stores/store'
 
 export default {
   components: { ProductCard },
   setup() {
-    
-    const store = useApiStore();
+    const store = useApiStore()
     const state = reactive({
       loading: true,
-      products: [],
       filteredProducts: [],
-      dialog: false,
-
-
+      dialog: false
     })
     const filters = reactive({
+      selectedPage: 1,
       selectedPrice: {
         text: 'Sem filtro de Preço'
       },
@@ -109,31 +105,37 @@ export default {
     watch(filters, () => {
       getProducts()
     })
+    watch(filters, () => {
+      getProducts()
+    })
 
     const route = useRoute()
+
     const getProducts = async () => {
-      console.log('opa')
-      const pag = 1
       const params = [
-        pag,
+        filters.selectedPage,
         24,
-        filters.selectedPrice, 
-        filters.selectedRatings, 
+        filters.selectedPrice,
+        filters.selectedRatings,
         filters.selectedDiscount,
         filters.order,
         query.value.category
       ]
-      state.filteredProducts = await store.getProducts(params)
+      const data = await store.getProducts(params)
+      state.filteredProducts = data.products
+      state.pages = Math.floor(data.count / 24)
     }
+
     const query = computed(() => {
       return route.query
     })
 
     onMounted(getProducts)
+
     return {
       state,
       filters,
-      getProducts,
+      getProducts
     }
   }
 }
@@ -257,7 +259,17 @@ export default {
           </v-dialog>
         </div>
         <div class="d-flex flex-wrap justify-center justify-md-start">
-          <ProductCard v-for="(card, ind) in state.filteredProducts" :key="ind" :product="card" />
+          <ProductCard v-for="(card, ind) in state.filteredProducts" :key="ind" :product="card" :carrousel="false" />
+        </div>
+        <div class="d-flex justify-center w-100" fluid>
+          <v-pagination
+            v-model="filters.selectedPage"
+            :length="state.pages"
+            rounded="circle"
+            class="mt-5"
+            :size=" $vuetify.display.smAndDown ? 'small' : 'default'"
+            :total-visible="4"
+          ></v-pagination>
         </div>
       </div>
     </div>

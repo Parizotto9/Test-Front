@@ -5,7 +5,17 @@ export const useApiStore = defineStore('store',{
   id: 'exemplo',
   state: () => ({}),
   actions: {
+    async getItem(id) {
+      try{
+        const data = (await axios.get(`https://testfront.zlinkt.com/${id}`)).data
+        console.log(data)
+        return data
+      } catch(err) {
+        console.log(err)
+      }
+    },
     async getProducts(params) {
+      console.log(params[4], 'oi')
       //a API n aceita valores quebrados de avaliação então não tem como colocar para ir até 4.99 por exemplo, deixei indo de 4 a 5 para caso tenha algum com 4.5 estrelas mostrar
       const preco = params[2].text && params[2].text !== 'Sem filtro de Preço' ? `&startPrice=${params[2].startingPrice}&endPrice=${params[2].endingPrice}` : '';
       const avaliacao = params[3].value ? `&startEvaluation=${params[3].value}&endEvaluation=${params[3].value + 1}` : '';
@@ -21,9 +31,9 @@ export const useApiStore = defineStore('store',{
       discount +
       order +
       category;
-      console.log(parametros)
       try {
-        const data = (await axios.get(url + parametros)).data.products
+        const data = (await axios.get(url + parametros)).data
+        console.log(data)
         return data
       } catch(err) {
         console.log(err)
