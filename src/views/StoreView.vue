@@ -3,15 +3,17 @@ import { onBeforeMount, reactive, computed } from 'vue'
 import { useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { useApiStore } from '../stores/store'
 import ProductCard from '../components/ProductCard.vue'
+import StoreBox from '../components/StoreBox.vue'
 
 export default {
-  components: { ProductCard },
+  components: { ProductCard, StoreBox },
   setup() {
     const store = useApiStore()
     const state = reactive({
       item: {},
       indexImg: 0,
       itemId: null,
+      dialogZoom: false,
       products: [],
       productsDiscount: []
     })
@@ -23,7 +25,7 @@ export default {
       state.item = data
       window.scrollTo({
         top: 0,
-        behavior: 'smooth' 
+        behavior: 'smooth'
       })
       getProducts()
       getProductsDiscount()
@@ -34,7 +36,6 @@ export default {
       const data = await store.getProducts(params)
       state.products = data.products
     }
-    
 
     onBeforeRouteUpdate((to, from, next) => {
       state.itemId = to.query.item
@@ -54,7 +55,7 @@ export default {
           endingDiscount: 80
         },
         '',
-        '',
+        ''
       ]
       const data = await store.getProducts(params)
       state.productsDiscount = data.products
@@ -63,7 +64,6 @@ export default {
     const getId = () => {
       state.itemId = route.query.item
     }
-
 
     const finalPrice = computed(() => {
       return ((state.item.price * (100 - state.item.discount)) / 100).toLocaleString('pt-br', {
@@ -85,23 +85,28 @@ export default {
 
 <template>
   <div class="d-flex flex-column justify-center align-center mb-16 pb-16 mb-0 pb-0">
-    <div class="centralizar mt-4">
-      <p class="text-grey-darken-2 links">
-        <router-link to="/">Home 
-      </router-link>
-      <span class="mx-5"> ></span>
-      <router-link :to="`/search?category=${state.item.category}`">
-       {{state.item.category.toLowerCase()}}
-      </router-link>  
-    </p>
-  </div>
+    <StoreBox v-if="state.item.category">
+      <p class="text-grey-darken-2">
+        <router-link to="/">Home </router-link>
+        <span class="mx-5"> ></span>
+        <router-link :to="`/search?category=${state.item.category}`">
+          {{ state.item.category.toLowerCase() }}
+        </router-link>
+      </p>
+    </StoreBox>
     <div class="d-flex justify-center flex-column flex-md-row ma-md-10 my-md-4 ma-0">
       <v-card
         elevation="0"
         class="d-flex flex-column align-center align-md-start flex-md-row ma-0 ma-md-1 rounded-lg text-grey-darken-2 cards"
       >
         <div class="d-flex flex-column justify-center align-center card-img">
-          <img v-if="state.item.pictures" :src="state.item.pictures[state.indexImg]" :alt="state.item.title" class="img-full my-8" />
+          <img
+            v-if="state.item.pictures"
+            :src="state.item.pictures[state.indexImg]"
+            :alt="state.item.title"
+            class="img-full my-8"
+            @click="state.dialogZoom = !state.dialogZoom"
+          />
           <v-slide-group
             v-model="state.indexImg"
             show-arrows
@@ -198,52 +203,45 @@ export default {
         </p>
       </v-card>
     </div>
+    <v-dialog v-model="state.dialogZoom" width="600">
+      <img :src="state.item.pictures[state.indexImg]" :alt="state.item.title">
+    </v-dialog>
     <v-card class="cards d-md-none fixed-card pa-4">
       <h3 class="font-weight-bold text-h5">{{ finalPrice }}</h3>
       <p class="mb-1 text-caption">no <strong>cartão de crédito</strong></p>
       <v-btn prepend-icon="mdi-cart-outline" color="green-lighten-1" block> Comprar</v-btn>
     </v-card>
 
-    <div class="centralizar mt-13">
-      <h2 class="text-grey-darken-2 font-weight-bold mb-4">Produtos similares</h2>
+    <StoreBox title="Produtos similares">
       <v-slide-group show-arrows>
         <v-slide-group-item v-for="(card, ind) in state.products" :key="ind">
           <ProductCard :product="card" :carrousel="true" />
         </v-slide-group-item>
       </v-slide-group>
-    </div>
+    </StoreBox>
 
-    <div class="centralizar mt-13">
-      <h2 class="text-grey-darken-2 font-weight-bold mb-4">Aproveite as ofertas</h2>
+    <StoreBox title="Aproveite as ofertas">
       <v-slide-group show-arrows>
         <v-slide-group-item v-for="(card, ind) in state.productsDiscount" :key="ind">
           <ProductCard :product="card" :carrousel="true" />
         </v-slide-group-item>
       </v-slide-group>
-    </div>
-    <div class="centralizar mt-13">
-      <h2 class="text-grey-darken-2 font-weight-bold mb-4">Informações do produto</h2>
+    </StoreBox>
+
+    <StoreBox title="Informações do produto">
       <v-card elevation="0" class="rounded-lg ma-1 text-grey-darken-2 pa-8 mx-7 mx-md-0">
         {{ state.item.description }}
       </v-card>
-    </div>
+    </StoreBox>
   </div>
 </template>
 
 <style scoped lang="scss">
-.links{
-  width: 100vw;
-}
 .big-price {
   font-size: 30px;
 }
 .v-slide-group {
   max-width: 1420px;
-}
-.centralizar {
-  display: flex;
-  flex-direction: column;
-  max-width: 1120px;
 }
 .v-text-field {
   border: solid 1px rgb(163, 163, 163);
@@ -289,6 +287,7 @@ export default {
 .img-full {
   width: 350px;
   aspect-ratio: 1/1;
+  cursor: zoom-in;
 }
 .img-selected {
   border: solid 1px black !important;
@@ -309,7 +308,7 @@ export default {
     width: 80vw;
     margin-bottom: 20px;
   }
-  .card-info {
+  .card-info, .links {
     max-width: 100vw;
     padding: 10px;
   }
@@ -324,20 +323,10 @@ export default {
     bottom: 0;
     z-index: 10;
   }
-  .centralizar {
-    max-width: 100vw;
-    h2{
-      margin-left: 30px;
-    }
-  }
 }
 @media screen and (min-width: 960px) and (max-width: 1200px) {
   .card-img {
     width: 280px;
-  }
-  .centralizar {
-    max-width: calc(100vw - 60px);
-    margin: 0 30px;
   }
 
   .img-full {
